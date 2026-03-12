@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klasifikasi Gender Anime</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #ff7eb3, #ff758c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            color: #b3b3b3;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #ff7eb3;
+            background: rgba(255, 126, 179, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 50px;
+            color: #ff7eb3;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-area:hover i {
+            transform: translateY(-5px);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 10px;
+            display: none;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            object-fit: cover;
+        }
+
+        .btn-predict {
+            background: linear-gradient(90deg, #ff7eb3, #ff758c);
+            border: none;
+            border-radius: 30px;
+            padding: 14px 30px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            display: none;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 126, 179, 0.4);
+        }
+
+        .result-card {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.25);
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-card h2 {
+            margin: 0 0 5px 0;
+            font-size: 22px;
+            color: #fff;
+        }
+
+        .result-card .confidence {
+            font-size: 14px;
+            color: #ff7eb3;
+            margin: 0;
+        }
+
+        .spinner {
+            display: none;
+            width: 35px;
+            height: 35px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #ff7eb3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Klasifikasi Gender Karakter Anime</h1>
+        <p class="subtitle">Unggah gambar karakter anime untuk memprediksi gendernya</p>
+
+        <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <div id="upload-content">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <p style="margin:0; font-size: 15px;">Letakkan File gambar ke sini</p>
+            </div>
+            <img id="image-preview" src="" alt="Preview Gambar">
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <button class="btn-predict" id="predict-btn" onclick="predictImage()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Prediksi Gender
+        </button>
+
+        <div class="spinner" id="loading-spinner"></div>
+
+        <div class="result-card" id="result-card">
+            <h2 id="prediction-text">Perempuan</h2>
+            <p class="confidence" id="confidence-text">Confidence: 98%</p>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadContent = document.getElementById('upload-content');
+        const imagePreview = document.getElementById('image-preview');
+        const predictBtn = document.getElementById('predict-btn');
+        const resultCard = document.getElementById('result-card');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        let selectedFile = null;
+
+        // Menangani Drag & Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            if (fileInput.files && fileInput.files[0]) {
+                selectedFile = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    uploadContent.style.display = 'none';
+                    predictBtn.style.display = 'block';
+                    resultCard.style.display = 'none'; // Reset hasil sebelumnya
+                }
+                
+                reader.readAsDataURL(selectedFile);
+            }
+        }
+
+        async function predictImage() {
+            if (!selectedFile) return;
+
+            // Tampilkan animasi loading
+            predictBtn.style.display = 'none';
+            loadingSpinner.style.display = 'block';
+            resultCard.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                // Mengirim request ke API backend Flask (sesuaikan port jika berbeda)
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // Sembunyikan loading, tampilkan hasil
+                loadingSpinner.style.display = 'none';
+                predictBtn.style.display = 'block';
+                resultCard.style.display = 'block';
+
+                document.getElementById('prediction-text').innerText = data.class;
+                document.getElementById('confidence-text').innerText = `Tingkat Keyakinan: ${(data.confidence * 100).toFixed(2)}%`;
+
+            } catch (error) {
+                console.error('Error:', error);
+                loadingSpinner.style.display = 'none';
+                predictBtn.style.display = 'block';
+                alert('Terjadi kesalahan saat menghubungi server. Pastikan backend Flask sudah berjalan.');
+            }
+        }
+    </script>
+</body>
+</html>
